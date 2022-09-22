@@ -179,25 +179,65 @@ const getAllProperties = (options, limit = 10) => {
 };
 exports.getAllProperties = getAllProperties;
 
-getAllProperties({  // if options are given
-  city: "Vancouver",
-  owner_id: 346,
-  minimum_price_per_night: 300,
-  maximum_price_per_night: 350,
-  minimum_rating: 3.5,
-});
+// getAllProperties({  // if options are given
+//   city: "Vancouver",
+//   owner_id: 346,
+//   minimum_price_per_night: 300,
+//   maximum_price_per_night: 350,
+//   minimum_rating: 3.5,
+// });
 
-getAllProperties({},3);  // if no options are given
+// getAllProperties({},3);  // if no options are given
 
 /**
  * Add a property to the database
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function (property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+const addProperty = property => {
+  let queryFields = '';
+  let queryRefs = '';
+  const queryParams = [];
+  let index = 1;
+  
+  for (const [key, value] of Object.entries(property)) {
+    queryFields += `${key}, `;
+    queryRefs += `$${index}, `;
+    queryParams.push(value);
+    index++;
+  }
+
+  const queryString = `INSERT INTO properties (${queryFields.slice(0,-2)}) VALUES (${queryRefs.slice(0,-2)}) RETURNING *;`;
+  console.log('queryString: ',queryString);
+  console.log('queryParams: ',queryParams);
+  
+  return pool
+  .query(queryString, queryParams)
+  .then((result) => {
+    console.log("create new property: ", result.rows);
+    return result.rows;
+  })
+  .catch((err) => {
+    console.log(err.message);
+    return null;
+  });
 };
 exports.addProperty = addProperty;
+
+addProperty({
+  owner_id: 32,
+  title: 'The Grand Hotel',
+  description: 'the best thing since Waikiki',
+  thumbnail_photo_url: 'https://www.some url/32',
+  cover_photo_url: 'https://www.some url/46',
+  cost_per_night: '32493',
+  street: '551 Ridge Point Cres SE',
+  city: 'Calgary',
+  province: 'AB',
+  post_code: 'V2C 9D2',
+  country: 'Canada',
+  parking_spaces: 6,
+  number_of_bathrooms: 10,
+  number_of_bedrooms: 28
+}
+)
